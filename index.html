@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeepMe Note - Upgrade Your Ideas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f9ff', 500: '#0284c7', 600: '#0369a1', 700: '#075985' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+    </style>
+</head>
+<body x-data="keepApp()" x-init="initApp()" :class="{ 'dark bg-slate-900 text-slate-100': darkMode, 'bg-slate-50 text-slate-800': !darkMode }" class="h-full flex flex-col font-sans transition-colors duration-200">
+
+    <!-- Top Header -->
+    <header class="h-16 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <!-- Lightbulb Logo -->
+                <img src="gemini-svg%20(1).svg" alt="KeepMe Logo" class="w-9 h-9 object-contain drop-shadow-sm">
+                <span class="font-bold text-xl tracking-tight bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent">KeepMe</span>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="flex-1 max-w-xl mx-4">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" x-model="searchQuery" placeholder="Search notes, tags, or content..." 
+                       class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-amber-500/50 text-sm outline-none transition">
+                <button x-show="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center space-x-3">
+            <!-- View Mode Switcher -->
+            <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button @click="viewMode = 'grid'" :class="viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''" class="p-1.5 rounded-md transition" title="Grid View">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                </button>
+                <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''" class="p-1.5 rounded-md transition" title="List View">
+                    <i data-lucide="list" class="w-4 h-4"></i>
+                </button>
+                <button @click="viewMode = 'kanban'" :class="viewMode === 'kanban' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''" class="p-1.5 rounded-md transition" title="Kanban View">
+                    <i data-lucide="kanban" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Theme Toggle -->
+            <button @click="toggleTheme()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Theme">
+                <i x-show="!darkMode" data-lucide="moon" class="w-5 h-5"></i>
+                <i x-show="darkMode" data-lucide="sun" class="w-5 h-5 text-amber-400" x-cloak></i>
+            </button>
+
+            <!-- User Auth Profile / Sign In -->
+            <div class="border-l border-slate-200 dark:border-slate-800 pl-3">
+                <template x-if="currentUser">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            <div class="w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-sm shadow-sm" x-text="currentUser.name.charAt(0).toUpperCase()"></div>
+                            <span class="text-sm font-semibold hidden md:inline-block max-w-[100px] truncate" x-text="currentUser.name"></span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </button>
+                        <!-- Dropdown -->
+                        <div x-show="open" @click.outside="open = false" x-cloak class="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50">
+                            <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
+                                <p class="text-xs text-slate-400">Signed in as</p>
+                                <p class="text-xs font-semibold truncate text-amber-600 dark:text-amber-400" x-text="currentUser.email"></p>
+                            </div>
+                            <button @click="logout(); open = false" class="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-2 transition">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="!currentUser">
+                    <button @click="authModalOpen = true; authMode = 'login'" class="px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        <span>Sign In</span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside :class="sidebarOpen ? 'w-64' : 'w-16'" class="transition-all duration-300 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between py-4 bg-white dark:bg-slate-900 z-20">
+            <nav class="space-y-1 px-2">
+                <button @click="currentFilter = 'all'" :class="currentFilter === 'all' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition">
+                    <i data-lucide="lightbulb" class="w-5 h-5 shrink-0"></i>
+                    <span x-show="sidebarOpen" class="text-sm truncate">Notes</span>
+                </button>
+                <button @click="currentFilter = 'reminders'" :class="currentFilter === 'reminders' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition">
+                    <i data-lucide="bell" class="w-5 h-5 shrink-0"></i>
+                    <span x-show="sidebarOpen" class="text-sm truncate">Reminders</span>
+                </button>
+                <button @click="currentFilter = 'favorites'" :class="currentFilter === 'favorites' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition">
+                    <i data-lucide="star" class="w-5 h-5 shrink-0"></i>
+                    <span x-show="sidebarOpen" class="text-sm truncate">Favorites</span>
+                </button>
+                <button @click="currentFilter = 'archived'" :class="currentFilter === 'archived' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition">
+                    <i data-lucide="archive" class="w-5 h-5 shrink-0"></i>
+                    <span x-show="sidebarOpen" class="text-sm truncate">Archive</span>
+                </button>
+                <button @click="currentFilter = 'trashed'" :class="currentFilter === 'trashed' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition">
+                    <i data-lucide="trash-2" class="w-5 h-5 shrink-0"></i>
+                    <span x-show="sidebarOpen" class="text-sm truncate">Trash</span>
+                </button>
+
+                <div class="pt-4 pb-2 px-3 border-t border-slate-200 dark:border-slate-800" x-show="sidebarOpen">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Labels</span>
+                </div>
+
+                <!-- Custom Labels -->
+                <template x-for="label in allLabels" :key="label">
+                    <button @click="currentFilter = 'label:' + label" :class="currentFilter === 'label:' + label ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition">
+                        <i data-lucide="tag" class="w-4 h-4 shrink-0"></i>
+                        <span x-show="sidebarOpen" class="text-sm truncate" x-text="label"></span>
+                    </button>
+                </template>
+            </nav>
+            <div class="px-3" x-show="sidebarOpen">
+                <button @click="promptAddLabel()" class="w-full flex items-center space-x-2 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Create Label</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Note Area -->
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-6">
+
+            <!-- Dynamic Note Creation Box -->
+            <div x-show="currentFilter === 'all'" class="max-w-2xl mx-auto">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-lg overflow-hidden transition-all duration-200">
+                    <!-- Expanded Input -->
+                    <div x-show="isCreating" class="p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <input type="text" x-model="newNote.title" placeholder="Title" class="w-full font-semibold text-base bg-transparent border-none outline-none focus:ring-0 placeholder-slate-400">
+                            <button @click="newNote.pinned = !newNote.pinned" class="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500">
+                                <i data-lucide="pin" :class="newNote.pinned ? 'fill-amber-500 text-amber-500' : ''" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Main Content or Checklist -->
+                        <template x-if="newNote.type === 'text'">
+                            <textarea x-model="newNote.content" placeholder="Take a note..." rows="3" class="w-full text-sm bg-transparent border-none outline-none resize-none focus:ring-0 placeholder-slate-400"></textarea>
+                        </template>
+
+                        <template x-if="newNote.type === 'checklist'">
+                            <div class="space-y-2">
+                                <template x-for="(item, idx) in newNote.checklist" :key="idx">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" x-model="item.done" class="rounded border-slate-300 text-amber-500 focus:ring-amber-400">
+                                        <input type="text" x-model="item.text" placeholder="List item" class="flex-1 text-sm bg-transparent border-none outline-none">
+                                        <button @click="newNote.checklist.splice(idx, 1)" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                    </div>
+                                </template>
+                                <button @click="newNote.checklist.push({ text: '', done: false })" class="text-xs text-amber-600 font-medium hover:underline flex items-center space-x-1">
+                                    <i data-lucide="plus" class="w-3 h-3"></i><span>Add item</span>
+                                </button>
+                            </div>
+                        </template>
+
+                        <!-- Attached Images Preview -->
+                        <div x-show="newNote.images.length > 0" class="flex flex-wrap gap-2 pt-2">
+                            <template x-for="(img, idx) in newNote.images" :key="idx">
+                                <div class="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                                    <img :src="img" class="w-16 h-16 object-cover">
+                                    <button @click="newNote.images.splice(idx, 1)" class="absolute top-1 right-1 bg-black/60 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Labels / Metadata Tags -->
+                        <div class="flex flex-wrap items-center gap-1.5 pt-2">
+                            <template x-for="lbl in newNote.labels" :key="lbl">
+                                <span class="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                                    <span x-text="lbl"></span>
+                                    <button @click="newNote.labels = newNote.labels.filter(l => l !== lbl)" class="hover:text-red-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </span>
+                            </template>
+                        </div>
+
+                        <!-- Toolbar -->
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                            <div class="flex items-center space-x-1">
+                                <!-- Type Toggle -->
+                                <button @click="newNote.type = newNote.type === 'text' ? 'checklist' : 'text'" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Toggle Checklist">
+                                    <i data-lucide="check-square" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Image Upload -->
+                                <label class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer" title="Attach Image">
+                                    <i data-lucide="image" class="w-4 h-4"></i>
+                                    <input type="file" accept="image/*" @change="handleImageUpload($event, newNote)" class="hidden">
+                                </label>
+                                <!-- Speech to Text -->
+                                <button @click="toggleVoiceInput()" :class="isListening ? 'text-red-500 bg-red-50 dark:bg-red-950/40 animate-pulse' : 'text-slate-500'" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Voice Input">
+                                    <i data-lucide="mic" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Color Picker Dropdown -->
+                                <div class="relative" x-data="{ open: false }">
+                                    <button @click="open = !open" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Change Color">
+                                        <i data-lucide="palette" class="w-4 h-4"></i>
+                                    </button>
+                                    <div x-show="open" @click.outside="open = false" class="absolute bottom-10 left-0 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 flex space-x-1 z-30">
+                                        <template x-for="c in colorOptions" :key="c.name">
+                                            <button @click="newNote.color = c.value; open = false" :class="c.bg" class="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 hover:scale-110 transition"></button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <!-- Reminder Modal Toggle -->
+                                <button @click="promptSetReminder(newNote)" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Set Reminder">
+                                    <i data-lucide="bell" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Lock Toggle -->
+                                <button @click="promptLockNote(newNote)" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Lock Note">
+                                    <i data-lucide="lock" :class="newNote.locked ? 'text-amber-500' : ''" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button @click="resetNewNote(); isCreating = false" class="px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
+                                <button @click="saveNewNote()" class="px-4 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm transition">Save</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsed Input Bar -->
+                    <div x-show="!isCreating" @click="isCreating = true; $nextTick(() => lucide.createIcons())" class="p-3.5 flex items-center justify-between cursor-pointer text-slate-400 hover:text-slate-600">
+                        <span class="text-sm font-medium">Take a note...</span>
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="check-square" class="w-4 h-4 hover:text-slate-700"></i>
+                            <i data-lucide="image" class="w-4 h-4 hover:text-slate-700"></i>
+                            <i data-lucide="mic" class="w-4 h-4 hover:text-slate-700"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kanban View Mode -->
+            <template x-if="viewMode === 'kanban'">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                        <h3 class="font-bold text-sm text-slate-500 mb-3 flex items-center justify-between">
+                            <span>To Do</span>
+                            <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs px-2 py-0.5 rounded-full" x-text="getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'todo').length"></span>
+                        </h3>
+                        <div class="space-y-3">
+                            <template x-for="note in getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'todo')" :key="note.id">
+                                <div x-html="renderNoteCard(note)"></div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                        <h3 class="font-bold text-sm text-amber-600 mb-3 flex items-center justify-between">
+                            <span>In Progress</span>
+                            <span class="bg-amber-100 dark:bg-amber-950/60 text-amber-700 text-xs px-2 py-0.5 rounded-full" x-text="getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'in_progress').length"></span>
+                        </h3>
+                        <div class="space-y-3">
+                            <template x-for="note in getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'in_progress')" :key="note.id">
+                                <div x-html="renderNoteCard(note)"></div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                        <h3 class="font-bold text-sm text-emerald-600 mb-3 flex items-center justify-between">
+                            <span>Done</span>
+                            <span class="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 text-xs px-2 py-0.5 rounded-full" x-text="getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'done').length"></span>
+                        </h3>
+                        <div class="space-y-3">
+                            <template x-for="note in getFilteredNotes().filter(n => !n.archived && !n.trashed && n.status === 'done')" :key="note.id">
+                                <div x-html="renderNoteCard(note)"></div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Regular Grid / List View Mode -->
+            <template x-if="viewMode !== 'kanban'">
+                <div class="space-y-8">
+                    <!-- Others / Filtered Section -->
+                    <div class="space-y-3">
+                        <h2 x-show="getPinnedNotes().length > 0 && currentFilter === 'all'" class="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">Others</h2>
+                        
+                        <div x-show="getUnpinnedNotes().length === 0" class="text-center py-16 text-slate-400 space-y-2">
+                            <i data-lucide="file-text" class="w-12 h-12 mx-auto stroke-1 opacity-50"></i>
+                            <p class="text-sm">No notes found in this section.</p>
+                        </div>
+
+                        <div :class="viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' : 'space-y-3 max-w-3xl mx-auto'">
+                            <template x-for="note in getUnpinnedNotes()" :key="note.id">
+                                <div x-html="renderNoteCard(note)"></div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </main>
+    </div>
+
+    <!-- Sign In / Sign Up Modal -->
+    <div x-show="authModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-transition>
+        <div @click.outside="authModalOpen = false" class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
+                <div class="flex items-center space-x-2">
+                    <img src="gemini-svg%20(1).svg" class="w-7 h-7 object-contain">
+                    <h3 class="font-bold text-lg" x-text="authMode === 'login' ? 'Sign In to KeepMe' : 'Create Account'"></h3>
+                </div>
+                <button @click="authModalOpen = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Login / Signup Error Alert -->
+            <div x-show="authError" class="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs rounded-xl border border-red-200 dark:border-red-900" x-text="authError"></div>
+
+            <form @submit.prevent="authMode === 'login' ? handleLogin() : handleSignup()" class="space-y-4">
+                <template x-if="authMode === 'signup'">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Full Name</label>
+                        <input type="text" x-model="authForm.name" required placeholder="John Doe" class="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500">
+                    </div>
+                </template>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Email Address</label>
+                    <input type="email" x-model="authForm.email" required placeholder="name@example.com" class="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Password</label>
+                    <input type="password" x-model="authForm.password" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500">
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold text-sm transition shadow-md shadow-amber-500/20" x-text="authMode === 'login' ? 'Sign In' : 'Create Account'"></button>
+            </form>
+
+            <div class="text-center pt-2 border-t border-slate-100 dark:border-slate-700">
+                <p class="text-xs text-slate-500">
+                    <span x-text="authMode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'"></span>
+                    <button @click="authMode = authMode === 'login' ? 'signup' : 'login'; authError = ''" class="text-amber-600 dark:text-amber-400 font-semibold hover:underline ml-1" x-text="authMode === 'login' ? 'Sign Up' : 'Sign In'"></button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        function keepApp() {
+            return {
+                darkMode: localStorage.getItem('keepme_theme') === 'dark',
+                sidebarOpen: true,
+                viewMode: 'grid', // grid, list, kanban
+                currentFilter: 'all', // all, reminders, favorites, archived, trashed, label:X
+                searchQuery: '',
+                isCreating: false,
+                isListening: false,
+                
+                // Auth States
+                currentUser: null,
+                authModalOpen: false,
+                authMode: 'login', // login or signup
+                authError: '',
+                authForm: { name: '', email: '', password: '' },
+
+                allLabels: ['Personal', 'Work', 'Ideas', 'Urgent'],
+                colorOptions: [
+                    { name: 'Default', value: 'default', bg: 'bg-white dark:bg-slate-800' },
+                    { name: 'Red', value: 'red', bg: 'bg-red-100 dark:bg-red-950/50' },
+                    { name: 'Amber', value: 'amber', bg: 'bg-amber-100 dark:bg-amber-950/50' },
+                    { name: 'Green', value: 'green', bg: 'bg-emerald-100 dark:bg-emerald-950/50' },
+                    { name: 'Blue', value: 'blue', bg: 'bg-sky-100 dark:bg-sky-950/50' },
+                    { name: 'Purple', value: 'purple', bg: 'bg-purple-100 dark:bg-purple-950/50' }
+                ],
+                notes: [],
+                newNote: {
+                    title: '',
+                    content: '',
+                    type: 'text',
+                    checklist: [],
+                    pinned: false,
+                    favorite: false,
+                    archived: false,
+                    trashed: false,
+                    locked: false,
+                    passcode: '',
+                    isUnlocked: false,
+                    status: 'todo',
+                    color: 'default',
+                    labels: [],
+                    images: [],
+                    reminder: null
+                },
+
+                initApp() {
+                    // Check signed in user session
+                    const session = localStorage.getItem('keepme_session');
+                    if (session) {
+                        try {
+                            this.currentUser = JSON.parse(session);
+                        } catch(e) { this.currentUser = null; }
+                    }
+                    
+                    this.loadUserNotes();
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                getStorageKey() {
+                    return this.currentUser ? `keepme_data_${this.currentUser.email}` : 'keepme_data_guest';
+                },
+
+                loadUserNotes() {
+                    const saved = localStorage.getItem(this.getStorageKey());
+                    if (saved) {
+                        try { this.notes = JSON.parse(saved); } catch (e) { this.notes = []; }
+                    } else {
+                        // Demo sample notes for new users / guests
+                        this.notes = [
+                            {
+                                id: 1,
+                                title: '🚀 Welcome to KeepMe',
+                                content: 'Sign in to save and sync your personal notes across sessions seamlessly.',
+                                type: 'text',
+                                pinned: true,
+                                favorite: true,
+                                archived: false,
+                                trashed: false,
+                                locked: false,
+                                status: 'in_progress',
+                                color: 'amber',
+                                labels: ['Work'],
+                                images: [],
+                                reminder: null,
+                                updatedAt: new Date().toISOString()
+                            }
+                        ];
+                        this.saveToStorage();
+                    }
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                saveToStorage() {
+                    localStorage.setItem(this.getStorageKey(), JSON.stringify(this.notes));
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                // Authentication Methods
+                handleLogin() {
+                    const users = JSON.parse(localStorage.getItem('keepme_users') || '[]');
+                    const user = users.find(u => u.email.toLowerCase() === this.authForm.email.toLowerCase() && u.password === this.authForm.password);
+                    
+                    if (user) {
+                        this.currentUser = { name: user.name, email: user.email };
+                        localStorage.setItem('keepme_session', JSON.stringify(this.currentUser));
+                        this.authModalOpen = false;
+                        this.authForm = { name: '', email: '', password: '' };
+                        this.authError = '';
+                        this.loadUserNotes();
+                    } else {
+                        this.authError = 'Invalid email or password.';
+                    }
+                },
+
+                handleSignup() {
+                    if (!this.authForm.name || !this.authForm.email || !this.authForm.password) {
+                        this.authError = 'Please fill in all fields.';
+                        return;
+                    }
+                    const users = JSON.parse(localStorage.getItem('keepme_users') || '[]');
+                    if (users.some(u => u.email.toLowerCase() === this.authForm.email.toLowerCase())) {
+                        this.authError = 'An account with this email already exists.';
+                        return;
+                    }
+
+                    const newUser = { name: this.authForm.name, email: this.authForm.email, password: this.authForm.password };
+                    users.push(newUser);
+                    localStorage.setItem('keepme_users', JSON.stringify(users));
+
+                    // Automatically sign in after signup
+                    this.currentUser = { name: newUser.name, email: newUser.email };
+                    localStorage.setItem('keepme_session', JSON.stringify(this.currentUser));
+                    this.authModalOpen = false;
+                    this.authForm = { name: '', email: '', password: '' };
+                    this.authError = '';
+                    this.loadUserNotes();
+                },
+
+                logout() {
+                    localStorage.removeItem('keepme_session');
+                    this.currentUser = null;
+                    this.loadUserNotes();
+                },
+
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('keepme_theme', this.darkMode ? 'dark' : 'light');
+                },
+
+                resetNewNote() {
+                    this.newNote = {
+                        title: '', content: '', type: 'text', checklist: [], pinned: false,
+                        favorite: false, archived: false, trashed: false, locked: false, passcode: '',
+                        status: 'todo', color: 'default', labels: [], images: [], reminder: null
+                    };
+                },
+
+                saveNewNote() {
+                    if (!this.newNote.title && !this.newNote.content && this.newNote.checklist.length === 0 && this.newNote.images.length === 0) {
+                        this.isCreating = false;
+                        return;
+                    }
+                    const created = {
+                        ...this.newNote,
+                        id: Date.now(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    this.notes.unshift(created);
+                    this.saveToStorage();
+                    this.resetNewNote();
+                    this.isCreating = false;
+                },
+
+                handleImageUpload(event, noteObj) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        noteObj.images.push(e.target.result);
+                        this.saveToStorage();
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+                toggleVoiceInput() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert('Speech recognition is not supported in this browser.');
+                        return;
+                    }
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    const recognition = new SpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+
+                    if (this.isListening) {
+                        this.isListening = false;
+                        return;
+                    }
+
+                    this.isListening = true;
+                    recognition.start();
+
+                    recognition.onresult = (e) => {
+                        const transcript = e.results[0][0].transcript;
+                        this.newNote.content += (this.newNote.content ? ' ' : '') + transcript;
+                        this.isListening = false;
+                    };
+
+                    recognition.onerror = () => { this.isListening = false; };
+                    recognition.onend = () => { this.isListening = false; };
+                },
+
+                promptSetReminder(note) {
+                    const time = prompt("Enter reminder date & time (YYYY-MM-DD HH:MM):", note.reminder || '');
+                    if (time !== null) {
+                        note.reminder = time;
+                        this.saveToStorage();
+                    }
+                },
+
+                promptLockNote(note) {
+                    if (note.locked) {
+                        if (confirm("Remove lock protection from this note?")) {
+                            note.locked = false;
+                            note.passcode = '';
+                            this.saveToStorage();
+                        }
+                    } else {
+                        const code = prompt("Set 4-digit numeric passcode:");
+                        if (code) {
+                            note.locked = true;
+                            note.passcode = code;
+                            note.isUnlocked = false;
+                            this.saveToStorage();
+                        }
+                    }
+                },
+
+                unlockNotePrompt(note) {
+                    const code = prompt("Enter passcode to view note:");
+                    if (code === note.passcode) {
+                        note.isUnlocked = true;
+                    } else {
+                        alert("Incorrect passcode!");
+                    }
+                },
+
+                promptAddLabel() {
+                    const name = prompt("New Label Name:");
+                    if (name && !this.allLabels.includes(name)) {
+                        this.allLabels.push(name);
+                    }
+                },
+
+                getFilteredNotes() {
+                    return this.notes.filter(note => {
+                        // Search Filter
+                        if (this.searchQuery) {
+                            const q = this.searchQuery.toLowerCase();
+                            const matchTitle = note.title && note.title.toLowerCase().includes(q);
+                            const matchContent = note.content && note.content.toLowerCase().includes(q);
+                            const matchLabel = note.labels.some(l => l.toLowerCase().includes(q));
+                            if (!matchTitle && !matchContent && !matchLabel) return false;
+                        }
+
+                        // Category Filter
+                        if (this.currentFilter === 'all') return !note.archived && !note.trashed;
+                        if (this.currentFilter === 'reminders') return note.reminder && !note.trashed;
+                        if (this.currentFilter === 'favorites') return note.favorite && !note.trashed;
+                        if (this.currentFilter === 'archived') return note.archived && !note.trashed;
+                        if (this.currentFilter === 'trashed') return note.trashed;
+                        if (this.currentFilter.startsWith('label:')) {
+                            const lbl = this.currentFilter.replace('label:', '');
+                            return note.labels.includes(lbl) && !note.trashed;
+                        }
+                        return true;
+                    });
+                },
+
+                getPinnedNotes() {
+                    return this.getFilteredNotes().filter(n => n.pinned);
+                },
+
+                getUnpinnedNotes() {
+                    return this.getFilteredNotes().filter(n => !n.pinned);
+                },
+
+                // Render helpers
+                getColorClass(colorKey) {
+                    const match = this.colorOptions.find(c => c.value === colorKey);
+                    return match ? match.bg : 'bg-white dark:bg-slate-800';
+                },
+
+                renderNoteCard(note) {
+                    const bgClass = this.getColorClass(note.color);
+                    const isLocked = note.locked && !note.isUnlocked;
+
+                    return `
+                        <div class="group relative rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all duration-200 ${bgClass} flex flex-col justify-between">
+                            <div>
+                                ${note.images && note.images.length > 0 && !isLocked ? `
+                                    <div class="mb-3 overflow-hidden rounded-xl -mx-1 -mt-1">
+                                        <img src="${note.images[0]}" class="w-full h-32 object-cover">
+                                    </div>
+                                ` : ''}
+
+                                <div class="flex items-start justify-between">
+                                    <h3 class="font-bold text-sm tracking-tight">${note.title || 'Untitled Note'}</h3>
+                                    <button onclick="window.toggleNotePin(${note.id})" class="text-slate-400 hover:text-amber-500 p-1">
+                                        <i data-lucide="pin" class="w-4 h-4 ${note.pinned ? 'fill-amber-500 text-amber-500' : ''}"></i>
+                                    </button>
+                                </div>
+
+                                ${isLocked ? `
+                                    <div class="py-6 text-center space-y-2">
+                                        <i data-lucide="lock" class="w-8 h-8 mx-auto text-amber-500"></i>
+                                        <p class="text-xs text-slate-500">Note content locked</p>
+                                        <button onclick="window.unlockNote(${note.id})" class="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-semibold">Unlock</button>
+                                    </div>
+                                ` : `
+                                    ${note.type === 'text' ? `
+                                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-2 line-clamp-4 leading-relaxed">${note.content || ''}</p>
+                                    ` : `
+                                        <div class="mt-2 space-y-1">
+                                            ${(note.checklist || []).slice(0, 4).map(item => `
+                                                <div class="flex items-center space-x-2 text-xs">
+                                                    <i data-lucide="${item.done ? 'check-square' : 'square'}" class="w-3.5 h-3.5 ${item.done ? 'text-amber-500' : 'text-slate-400'}"></i>
+                                                    <span class="${item.done ? 'line-through text-slate-400' : ''}">${item.text}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `}
+                                `}
+                            </div>
+
+                            <div class="mt-4 pt-2 flex items-center justify-between opacity-80 group-hover:opacity-100 transition">
+                                <div class="flex items-center space-x-1">
+                                    <button onclick="window.toggleFavorite(${note.id})" class="p-1 text-slate-400 hover:text-amber-500">
+                                        <i data-lucide="star" class="w-3.5 h-3.5 ${note.favorite ? 'fill-amber-400 text-amber-400' : ''}"></i>
+                                    </button>
+                                    <button onclick="window.toggleArchive(${note.id})" class="p-1 text-slate-400 hover:text-amber-500">
+                                        <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button onclick="window.deleteNote(${note.id})" class="p-1 text-slate-400 hover:text-red-500">
+                                        <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                                ${note.reminder ? `<span class="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full flex items-center gap-1"><i data-lucide="bell" class="w-2.5 h-2.5"></i>${note.reminder}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            };
+        }
+
+        // Global Helper Functions for Dynamic Card Interactions
+        window.getAlpine = () => Alpine.$data(document.body);
+        window.toggleNotePin = (id) => {
+            const app = window.getAlpine();
+            const note = app.notes.find(n => n.id === id);
+            if (note) { note.pinned = !note.pinned; app.saveToStorage(); }
+        };
+        window.toggleFavorite = (id) => {
+            const app = window.getAlpine();
+            const note = app.notes.find(n => n.id === id);
+            if (note) { note.favorite = !note.favorite; app.saveToStorage(); }
+        };
+        window.toggleArchive = (id) => {
+            const app = window.getAlpine();
+            const note = app.notes.find(n => n.id === id);
+            if (note) { note.archived = !note.archived; app.saveToStorage(); }
+        };
+        window.deleteNote = (id) => {
+            const app = window.getAlpine();
+            const note = app.notes.find(n => n.id === id);
+            if (note) {
+                if (note.trashed) {
+                    app.notes = app.notes.filter(n => n.id !== id);
+                } else {
+                    note.trashed = true;
+                }
+                app.saveToStorage();
+            }
+        };
+        window.unlockNote = (id) => {
+            const app = window.getAlpine();
+            const note = app.notes.find(n => n.id === id);
+            if (note) app.unlockNotePrompt(note);
+        };
+    </script>
+</body>
+</html>

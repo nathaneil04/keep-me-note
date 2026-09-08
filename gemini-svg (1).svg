@@ -1,0 +1,18 @@
+<svg class="w-8 h-8 flex-shrink-0" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Filament Soft Glow -->
+  <circle cx="32" cy="25" r="10" fill="#FBBF24" fill-opacity="0.25" />
+  
+  <!-- Outer Glass Shell -->
+  <path d="M32 8C20.95 8 12 16.95 12 28C12 34.2 14.85 39.7 19.35 43.3C20.4 44.1 21 45.3 21 46.5V47H43V46.5C43 45.3 43.6 44.1 44.65 43.3C49.15 39.7 52 34.2 52 28C52 16.95 43.05 8 32 8Z" 
+        stroke="#334155" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Inner Filament -->
+  <path d="M26 38V28.5C26 23.5 22 22 24.5 19.5C27 17 30 22 32 22C34 22 37 17 39.5 19.5C42 22 38 23.5 38 28.5V38" 
+        stroke="#F59E0B" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28.5 28.5H35.5" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Screw Thread Base -->
+  <path d="M21.5 47H42.5V49.5C42.5 50.3 41.8 51 41 51H23C22.2 51 21.5 50.3 21.5 49.5V47Z" fill="#94A3B8" stroke="#334155" stroke-width="2"/>
+  <path d="M22.5 51H41.5V53.5C41.5 54.3 40.8 55 40 55H24C23.2 55 22.5 54.3 22.5 53.5V51Z" fill="#64748B" stroke="#334155" stroke-width="2"/>
+  <path d="M24.5 55H39.5V56.5C39.5 57.9 38.4 59 37 59H27C25.6 59 24.5 57.9 24.5 56.5V55Z" fill="#334155"/>
+</svg>
