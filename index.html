@@ -28,7 +28,7 @@
    <style>
     [x-cloak] { display: none !important; }
 
-    /* Universal Viewport & Root Reset */
+    /* Root Variables & Device Safe Areas (Notch, Dynamic Island, Gesture Bar) */
     :root {
         --header-height: 4rem;
         --safe-top: env(safe-area-inset-top, 0px);
@@ -53,81 +53,98 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 9999px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.6); }
 
-    /* Device Safe Area Padding (Notch, Dynamic Island, Gesture Bar) */
+    /* Safe Area Padding for Mobile Devices */
     header {
         padding-top: max(0.5rem, var(--safe-top));
-        padding-left: max(1rem, var(--safe-left));
-        padding-right: max(1rem, var(--safe-right));
-    }
-
-    main {
-        padding-bottom: max(1.5rem, var(--safe-bottom));
         padding-left: max(0.75rem, var(--safe-left));
         padding-right: max(0.75rem, var(--safe-right));
     }
 
-    /* Input & Mobile Keyboard Zoom Fix */
+    main {
+        padding-bottom: max(2rem, var(--safe-bottom));
+        padding-left: max(0.75rem, var(--safe-left));
+        padding-right: max(0.75rem, var(--safe-right));
+    }
+
+    /* Prevent Mobile Keyboard Auto-Zoom on Inputs */
     @media (max-width: 768px) {
         input, select, textarea {
             font-size: 16px !important;
         }
     }
 
-    /* Mobile Off-Canvas Sidebar Drawer (< 768px) */
+    /* Word Break Fix for Long URLs & Texts in Note Cards */
+    .keep-card-text {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Mobile Off-Canvas Google Keep Navigation Drawer (< 768px) */
     @media (max-width: 767px) {
         aside {
             position: fixed !important;
-            top: var(--header-height);
+            top: 0;
             bottom: 0;
             left: 0;
-            height: calc(100dvh - var(--header-height));
-            z-index: 40;
-            box-shadow: 8px 0 30px rgba(0, 0, 0, 0.2);
+            height: 100dvh;
+            width: 17.5rem !important; /* 280px Google Keep drawer width */
+            z-index: 50;
+            border-top-right-radius: 1.5rem;
+            border-bottom-right-radius: 1.5rem;
+            box-shadow: 12px 0 30px rgba(0, 0, 0, 0.35);
             transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            background-color: var(--tw-bg-opacity);
+            padding-top: max(1rem, var(--safe-top));
+            padding-bottom: max(1rem, var(--safe-bottom));
         }
 
-        /* Collapsed drawer hides completely off-screen on mobile */
+        /* Slide out when closed on mobile */
         aside.w-16 {
             transform: translateX(-100%);
-            width: 16rem !important;
         }
 
-        /* Expanded drawer slides in fully */
+        /* Slide in when open on mobile */
         aside.w-64 {
             transform: translateX(0);
         }
 
-        /* Compact Header Search Bar for Phones */
-        header .max-w-xl {
-            margin-left: 0.25rem;
-            margin-right: 0.25rem;
-        }
-
         /* Touch-friendly interactive target sizes */
         button, label.cursor-pointer, input[type="checkbox"] {
-            min-height: 40px;
-            min-width: 40px;
+            min-height: 44px;
+            min-width: 44px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
         }
-    }
 
-    /* Google Keep Responsive Auto-Fitting Fluid Masonry Grid */
-    .keep-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 1rem;
-    }
-
-    @media (min-width: 1280px) {
-        .keep-grid {
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        /* Mobile Search Bar Sizing */
+        header .max-w-xl {
+            margin-left: 0.25rem;
+            margin-right: 0.25rem;
         }
     }
 
-    /* Horizontal Swipeable Kanban Board for Mobile & Tablet (< 1024px) */
+    /* Universal Google Keep Dynamic Grid Layout */
+    .grid.grid-cols-1.sm\:grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+        display: grid !important;
+        gap: 0.625rem; /* Compact Keep spacing on small screens */
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important; /* Force 2-Column Mobile Grid */
+    }
+
+    @media (min-width: 640px) {
+        .grid.grid-cols-1.sm\:grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+            gap: 0.875rem;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .grid.grid-cols-1.sm\:grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+        }
+    }
+
+    /* Horizontal Swipeable Kanban Columns on Mobile & Tablet (< 1024px) */
     @media (max-width: 1023px) {
         .grid.grid-cols-1.md\:grid-cols-3 {
             display: flex !important;
@@ -139,12 +156,12 @@
         }
 
         .grid.grid-cols-1.md\:grid-cols-3 > div {
-            flex: 0 0 88%;
+            flex: 0 0 85%;
             scroll-snap-align: center;
         }
     }
 
-    /* Mobile Bottom Sheets for Modals (< 640px) */
+    /* Mobile Bottom-Sheet Style Modals (< 640px) */
     @media (max-width: 639px) {
         .fixed.inset-0.z-50 {
             align-items: flex-end !important;
@@ -152,12 +169,13 @@
         }
 
         .fixed.inset-0.z-50 > div {
+            width: 100% !important;
             max-width: 100% !important;
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
-            border-top-left-radius: 1.5rem !important;
-            border-top-right-radius: 1.5rem !important;
-            max-height: 85dvh;
+            border-top-left-radius: 1.75rem !important;
+            border-top-right-radius: 1.75rem !important;
+            max-height: 88dvh;
             overflow-y: auto;
             animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -168,7 +186,7 @@
         to { transform: translateY(0); }
     }
 
-    /* Ultra-Wide Screen Containment (> 1920px) */
+    /* Ultra-Wide Screen Constraints (> 1920px) */
     @media (min-width: 1920px) {
         main {
             max-width: 1800px;
