@@ -25,85 +25,109 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
+   <style>
     [x-cloak] { display: none !important; }
 
-    /* Root & Touch Optimizations */
+    /* Universal Viewport & Root Reset */
+    :root {
+        --header-height: 4rem;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-left: env(safe-area-inset-left, 0px);
+        --safe-right: env(safe-area-inset-right, 0px);
+    }
+
     html, body {
         height: 100%;
+        height: 100dvh;
+        width: 100%;
         overflow-x: hidden;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
+        -webkit-font-smoothing: antialiased;
     }
 
-    /* Custom Scrollbar Styles */
+    /* Custom Scrollbar */
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 9999px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.6); }
 
-    /* Device Safe-Area Insets (Notch & Gesture Bar Support) */
+    /* Device Safe Area Padding (Notch, Dynamic Island, Gesture Bar) */
     header {
-        padding-top: max(0.5rem, env(safe-area-inset-top));
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-top: max(0.5rem, var(--safe-top));
+        padding-left: max(1rem, var(--safe-left));
+        padding-right: max(1rem, var(--safe-right));
     }
 
     main {
-        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-bottom: max(1.5rem, var(--safe-bottom));
+        padding-left: max(0.75rem, var(--safe-left));
+        padding-right: max(0.75rem, var(--safe-right));
     }
 
-    /* Prevent iOS Safari Automatic Zoom on Input Focus */
+    /* Input & Mobile Keyboard Zoom Fix */
     @media (max-width: 768px) {
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        textarea {
+        input, select, textarea {
             font-size: 16px !important;
         }
     }
 
-    /* Mobile Sidebar Off-Canvas Drawer (< 768px) */
+    /* Mobile Off-Canvas Sidebar Drawer (< 768px) */
     @media (max-width: 767px) {
         aside {
-            position: fixed;
-            top: 4rem;
+            position: fixed !important;
+            top: var(--header-height);
             bottom: 0;
             left: 0;
+            height: calc(100dvh - var(--header-height));
             z-index: 40;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 8px 0 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: var(--tw-bg-opacity);
         }
 
-        /* Slide completely off-screen when closed on mobile */
+        /* Collapsed drawer hides completely off-screen on mobile */
         aside.w-16 {
             transform: translateX(-100%);
             width: 16rem !important;
         }
 
-        /* Shrink search container smoothly */
+        /* Expanded drawer slides in fully */
+        aside.w-64 {
+            transform: translateX(0);
+        }
+
+        /* Compact Header Search Bar for Phones */
         header .max-w-xl {
-            min-width: 0;
-            margin-left: 0.5rem;
-            margin-right: 0.5rem;
+            margin-left: 0.25rem;
+            margin-right: 0.25rem;
         }
 
-        /* Prevent icon crowding in top navigation */
-        header .flex.items-center.space-x-3 {
-            gap: 0.25rem;
-            space-x: 0 !important;
-        }
-
-        /* Ensure interactive elements hit minimum touch targets */
-        button, label.cursor-pointer {
-            min-height: 38px;
-            min-width: 38px;
+        /* Touch-friendly interactive target sizes */
+        button, label.cursor-pointer, input[type="checkbox"] {
+            min-height: 40px;
+            min-width: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
     }
 
-    /* Horizontal Swipeable Kanban Board (Mobile & Tablet) */
+    /* Google Keep Responsive Auto-Fitting Fluid Masonry Grid */
+    .keep-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+
+    @media (min-width: 1280px) {
+        .keep-grid {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        }
+    }
+
+    /* Horizontal Swipeable Kanban Board for Mobile & Tablet (< 1024px) */
     @media (max-width: 1023px) {
         .grid.grid-cols-1.md\:grid-cols-3 {
             display: flex !important;
@@ -115,19 +139,36 @@
         }
 
         .grid.grid-cols-1.md\:grid-cols-3 > div {
-            flex: 0 0 85%;
+            flex: 0 0 88%;
             scroll-snap-align: center;
         }
     }
 
-    /* Modal Sizing for Small Viewports & Dynamic Viewport Height */
-    .fixed.inset-0 > div {
-        max-height: calc(100vh - 2rem);
-        max-height: calc(100dvh - 2rem);
-        overflow-y: auto;
+    /* Mobile Bottom Sheets for Modals (< 640px) */
+    @media (max-width: 639px) {
+        .fixed.inset-0.z-50 {
+            align-items: flex-end !important;
+            padding: 0 !important;
+        }
+
+        .fixed.inset-0.z-50 > div {
+            max-width: 100% !important;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-top-left-radius: 1.5rem !important;
+            border-top-right-radius: 1.5rem !important;
+            max-height: 85dvh;
+            overflow-y: auto;
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
     }
 
-    /* Ultra-Wide Monitor Containment (> 1920px) */
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+
+    /* Ultra-Wide Screen Containment (> 1920px) */
     @media (min-width: 1920px) {
         main {
             max-width: 1800px;
