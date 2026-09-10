@@ -493,6 +493,15 @@ saveEditingNote() {
                 },
 
                 initApp() {
+    // Register Service Worker for Offline Mode
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered:', reg.scope))
+                .catch(err => console.error('Service Worker registration failed:', err));
+        });
+    }
+
     // Auto-close sidebar on small screen viewports
     if (window.innerWidth < 768) {
         this.sidebarOpen = false;
